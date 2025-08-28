@@ -25,9 +25,8 @@ if (!$apiKey) {
 
 $input = json_decode(file_get_contents('php://input'), true) ?? [];
 $messages = $input['messages'] ?? [];
-$responseFormat = $input['responseFormat'] ?? 'text'; // 'text' | 'json_object' | 'json_schema'
+$responseFormat = $input['responseFormat'] ?? 'text';
 
-// —— System Prompt integrale + istruzioni operative e regole JSON ——
 $systemContent = <<<SYS
 CONTESTO:
 Stiamo per creare uno dei migliori prompt per ChatGPT mai scritti. I prompt migliori includono dettagli completi per informare pienamente il Large Language Model in merito a: obiettivi, ambiti di competenza richiesti, conoscenze settoriali, formato preferito, pubblico di destinazione, riferimenti, esempi e il miglior approccio per raggiungere l’obiettivo. Sulla base di queste informazioni, e di quelle che seguiranno, sarai in grado di scrivere un prompt eccezionale.
@@ -119,23 +118,20 @@ NOTE DI COERENZA CON LA UI:
 SYS;
 
 $payload = [
-    'model' => 'gpt-5-2025-08-07', // usa un modello valido nella tua org
+    'model' => 'gpt-5-2025-08-07',
     'input' => array_merge(
         [['role' => 'system', 'content' => $systemContent]],
         array_map(fn($m) => ['role' => $m['role'], 'content' => (string)$m['content']], $messages)
     ),
 ];
 
-// Mappatura corretta del formato di output
+
 if ($responseFormat === 'json_object') {
-    // <<<<<< NO "json" >>>>>> deve essere "json_object"
     $payload['text'] = ['format' => ['type' => 'json_object']];
 } elseif ($responseFormat === 'json_schema') {
     // esempio: definizione schema qui se mai servisse
-    // $payload['text'] = ['format' => ['type' => 'json_schema', 'json_schema' => [ ... ]]];
 }
 
-// cURL
 $ch = curl_init('https://api.openai.com/v1/responses');
 curl_setopt_array($ch, [
     CURLOPT_HTTPHEADER => [
@@ -161,12 +157,10 @@ curl_close($ch);
 
 $decoded = json_decode($result, true);
 
-// Log
 $logDir = __DIR__ . '/logs';
 if (!is_dir($logDir)) { @mkdir($logDir, 0777, true); }
 $logFile = $logDir . '/openai.log';
 
-// estrazione testo dal blocco "message"
 $outText = null;
 if (is_array($decoded) && isset($decoded['output']) && is_array($decoded['output'])) {
     foreach ($decoded['output'] as $block) {
